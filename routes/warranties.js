@@ -23,7 +23,7 @@ const parseLists = (body) => {
 
 router.use(protect);
 
-// GET /api/warranties?q=searchTerm  — list / search by Order ID or customer name
+// GET /api/warranties?q=&page=1  — paginated list / search (15 per page)
 router.get("/", requirePerm("warranty:view"), async (req, res) => {
   const q = req.query.q?.trim();
   const filter = q
@@ -35,8 +35,19 @@ router.get("/", requirePerm("warranty:view"), async (req, res) => {
         ],
       }
     : {};
-  const items = await Warranty.find(filter).sort("-createdAt").limit(200);
-  res.json(items);
+
+  const limit = 15;
+  const page = Math.max(1, parseInt(req.query.page) || 1);
+
+  const [items, total] = await Promise.all([
+    Warranty.find(filter)
+      .sort("-createdAt")
+      .skip((page - 1) * limit)
+      .limit(limit),
+    Warranty.countDocuments(filter),
+  ]);
+
+  res.json({ items, total, page, pages: Math.max(1, Math.ceil(total / limit)) });
 });
 
 // GET /api/warranties/:id
