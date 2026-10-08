@@ -1,0 +1,12 @@
+{
+  "watch": ["index.js", "config", "middleware", "models", "routes", "utils"],
+  "ext": "js,json",
+  "ignore": [
+    "node_modules/**",
+    ".git/**",
+    "*.log",
+    ".env",
+    "package-lock.json"
+  ],
+  "delay": 500
+}
