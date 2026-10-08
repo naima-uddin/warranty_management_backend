@@ -7,6 +7,17 @@ import authRoutes from "./routes/auth.js";
 import userRoutes from "./routes/users.js";
 import warrantyRoutes from "./routes/warranties.js";
 
+// Fail fast if critical env vars are missing (clearer than a cryptic runtime error).
+const required = ["MONGO_URI", "JWT_SECRET"];
+const missing = required.filter((k) => !process.env[k]);
+if (missing.length) {
+  console.error(`❌ Missing required env vars: ${missing.join(", ")}`);
+  process.exit(1);
+}
+if (!process.env.CLOUDINARY_CLOUD_NAME) {
+  console.warn("⚠️  Cloudinary not configured — image uploads will fail.");
+}
+
 const app = express();
 
 app.use(cors({ origin: process.env.CLIENT_URL || "*" }));

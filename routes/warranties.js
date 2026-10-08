@@ -5,7 +5,27 @@ import { protect, require as requirePerm } from "../middleware/auth.js";
 import { uploadToCloudinary } from "../config/cloudinary.js";
 
 const router = Router();
-const upload = multer({ storage: multer.memoryStorage() });
+
+// Max 5 MB uploads. Image type is enforced by the frontend (accept="image/*")
+// and by Cloudinary, which only stores valid images.
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+});
+
+// Run multer and surface size-limit errors as a clean 400.
+const uploadImage = (req, res, next) =>
+  upload.single("image")(req, res, (err) => {
+    if (err) {
+      req.resume();
+      const msg =
+        err.code === "LIMIT_FILE_SIZE"
+          ? "Image must be 5 MB or smaller"
+          : err.message;
+      return res.status(400).json({ message: msg });
+    }
+    next();
+  });
 
 // List fields arrive as JSON strings from the multipart form — parse them.
 const parseLists = (body) => {
@@ -80,7 +100,7 @@ router.get("/:id", requirePerm("warranty:view"), async (req, res) => {
 router.post(
   "/",
   requirePerm("warranty:create"),
-  upload.single("image"),
+  uploadImage,
   async (req, res) => {
     try {
       const data = { ...parseLists(req.body), createdBy: req.user._id };
@@ -97,7 +117,7 @@ router.post(
 router.put(
   "/:id",
   requirePerm("warranty:edit"),
-  upload.single("image"),
+  uploadImage,
   async (req, res) => {
     try {
       const data = { ...parseLists(req.body) };
@@ -108,7 +128,7 @@ router.put(
       }
       delete data.removeImage;
       const item = await Warranty.findByIdAndUpdate(req.params.id, data, {
-        new: true,
+        returnDocument: "after",
         runValidators: true,
       });
       if (!item) return res.status(404).json({ message: "Not found" });
