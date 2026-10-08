@@ -46,29 +46,83 @@ router.use(protect);
 // Escape regex special chars so search input (e.g. "+1 (929)") can't break the query.
 const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-// GET /api/warranties?q=&page=1  — paginated list / search (15 per page)
+// Parse a YYYY-MM-DD (or ISO) query value into a Date; ignore anything invalid.
+const parseDate = (v) => {
+  if (!v) return null;
+  const d = new Date(v);
+  return isNaN(d.getTime()) ? null : d;
+};
+
+// How far back each quick range reaches, measured from "now".
+const startOfRange = (range) => {
+  const now = new Date();
+  switch (range) {
+    case "today":
+      return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    case "7days": {
+      const d = new Date(now);
+      d.setDate(d.getDate() - 7);
+      return d;
+    }
+    case "month": {
+      const d = new Date(now);
+      d.setMonth(d.getMonth() - 1);
+      return d;
+    }
+    default:
+      return null; // "all" or unknown → no date filter
+  }
+};
+
+// Allowed sort orders (maps the public value to a Mongoose sort spec).
+// Sorts on purchaseDate — the date shown in the list — with _id as a stable
+// tie-breaker so rows with the same purchase date keep a consistent order.
+const SORTS = {
+  newest: { purchaseDate: -1, _id: -1 },
+  oldest: { purchaseDate: 1, _id: 1 },
+};
+
+// GET /api/warranties?q=&page=1&range=all&sort=newest  — paginated list / search (15 per page)
 router.get("/", requirePerm("warranty:view"), async (req, res) => {
   try {
     const q = req.query.q?.trim();
-    const filter = q
-      ? (() => {
-          const rx = new RegExp(escapeRegex(q), "i");
-          return {
-            $or: [
-              { orderId: rx },
-              { customerName: rx },
-              { customerPhone: rx },
-            ],
-          };
-        })()
-      : {};
+    const conditions = [];
+
+    if (q) {
+      const rx = new RegExp(escapeRegex(q), "i");
+      conditions.push({
+        $or: [{ orderId: rx }, { customerName: rx }, { customerPhone: rx }],
+      });
+    }
+
+    // Date filter on purchaseDate. A custom from/to range (any date, any month)
+    // takes precedence; otherwise fall back to a quick preset range.
+    const dateFilter = {};
+    const from = parseDate(req.query.from);
+    const to = parseDate(req.query.to);
+    if (from) dateFilter.$gte = from;
+    if (to) {
+      // `to` is an inclusive day — extend it to the end of that day.
+      to.setHours(23, 59, 59, 999);
+      dateFilter.$lte = to;
+    }
+    if (!from && !to) {
+      const presetFrom = startOfRange(req.query.range);
+      if (presetFrom) dateFilter.$gte = presetFrom;
+    }
+    if (Object.keys(dateFilter).length) {
+      conditions.push({ purchaseDate: dateFilter });
+    }
+
+    const filter = conditions.length ? { $and: conditions } : {};
+    const sort = SORTS[req.query.sort] || SORTS.newest;
 
     const limit = 15;
     const page = Math.max(1, parseInt(req.query.page) || 1);
 
     const [items, total] = await Promise.all([
       Warranty.find(filter)
-        .sort("-createdAt")
+        .sort(sort)
         .skip((page - 1) * limit)
         .limit(limit),
       Warranty.countDocuments(filter),
