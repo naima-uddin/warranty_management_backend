@@ -7,6 +7,20 @@ import { uploadToCloudinary } from "../config/cloudinary.js";
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
+// List fields arrive as JSON strings from the multipart form — parse them.
+const parseLists = (body) => {
+  for (const key of ["covered", "notCovered", "claimSteps"]) {
+    if (typeof body[key] === "string") {
+      try {
+        body[key] = JSON.parse(body[key]);
+      } catch {
+        /* leave as-is */
+      }
+    }
+  }
+  return body;
+};
+
 router.use(protect);
 
 // GET /api/warranties?q=searchTerm  — list / search by Order ID or customer name
@@ -39,7 +53,7 @@ router.post(
   upload.single("image"),
   async (req, res) => {
     try {
-      const data = { ...req.body, createdBy: req.user._id };
+      const data = { ...parseLists(req.body), createdBy: req.user._id };
       if (req.file) data.imageUrl = await uploadToCloudinary(req.file.buffer);
       const item = await Warranty.create(data);
       res.status(201).json(item);
@@ -56,7 +70,7 @@ router.put(
   upload.single("image"),
   async (req, res) => {
     try {
-      const data = { ...req.body };
+      const data = { ...parseLists(req.body) };
       if (req.file) data.imageUrl = await uploadToCloudinary(req.file.buffer);
       const item = await Warranty.findByIdAndUpdate(req.params.id, data, {
         new: true,
