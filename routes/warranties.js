@@ -23,31 +23,46 @@ const parseLists = (body) => {
 
 router.use(protect);
 
+// Escape regex special chars so search input (e.g. "+1 (929)") can't break the query.
+const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 // GET /api/warranties?q=&page=1  — paginated list / search (15 per page)
 router.get("/", requirePerm("warranty:view"), async (req, res) => {
-  const q = req.query.q?.trim();
-  const filter = q
-    ? {
-        $or: [
-          { orderId: new RegExp(q, "i") },
-          { customerName: new RegExp(q, "i") },
-          { customerPhone: new RegExp(q, "i") },
-        ],
-      }
-    : {};
+  try {
+    const q = req.query.q?.trim();
+    const filter = q
+      ? (() => {
+          const rx = new RegExp(escapeRegex(q), "i");
+          return {
+            $or: [
+              { orderId: rx },
+              { customerName: rx },
+              { customerPhone: rx },
+            ],
+          };
+        })()
+      : {};
 
-  const limit = 15;
-  const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = 15;
+    const page = Math.max(1, parseInt(req.query.page) || 1);
 
-  const [items, total] = await Promise.all([
-    Warranty.find(filter)
-      .sort("-createdAt")
-      .skip((page - 1) * limit)
-      .limit(limit),
-    Warranty.countDocuments(filter),
-  ]);
+    const [items, total] = await Promise.all([
+      Warranty.find(filter)
+        .sort("-createdAt")
+        .skip((page - 1) * limit)
+        .limit(limit),
+      Warranty.countDocuments(filter),
+    ]);
 
-  res.json({ items, total, page, pages: Math.max(1, Math.ceil(total / limit)) });
+    res.json({
+      items,
+      total,
+      page,
+      pages: Math.max(1, Math.ceil(total / limit)),
+    });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
 });
 
 // GET /api/warranties/:id
