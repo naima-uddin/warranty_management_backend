@@ -82,7 +82,12 @@ router.put(
   async (req, res) => {
     try {
       const data = { ...parseLists(req.body) };
-      if (req.file) data.imageUrl = await uploadToCloudinary(req.file.buffer);
+      if (req.file) {
+        data.imageUrl = await uploadToCloudinary(req.file.buffer);
+      } else if (data.removeImage === "true") {
+        data.imageUrl = ""; // user cleared the existing image
+      }
+      delete data.removeImage;
       const item = await Warranty.findByIdAndUpdate(req.params.id, data, {
         new: true,
         runValidators: true,
