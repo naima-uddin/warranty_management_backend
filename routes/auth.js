@@ -18,12 +18,16 @@ const publicUser = (u) => ({
 
 // POST /api/auth/login
 router.post("/login", async (req, res) => {
-  const { email, password } = req.body;
-  const user = await User.findOne({ email: email?.toLowerCase() });
-  if (!user || !user.active || !(await user.comparePassword(password || "")))
-    return res.status(401).json({ message: "Invalid credentials" });
+  try {
+    const { email, password } = req.body;
+    const user = await User.findOne({ email: email?.toLowerCase() });
+    if (!user || !user.active || !(await user.comparePassword(password || "")))
+      return res.status(401).json({ message: "Invalid credentials" });
 
-  res.json({ token: sign(user._id), user: publicUser(user) });
+    res.json({ token: sign(user._id), user: publicUser(user) });
+  } catch (err) {
+    res.status(500).json({ message: "Login failed, please try again" });
+  }
 });
 
 // GET /api/auth/me

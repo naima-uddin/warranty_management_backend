@@ -17,6 +17,15 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/warranties", warrantyRoutes);
 
+// JSON 404 for unknown API routes
+app.use((_req, res) => res.status(404).json({ message: "Route not found" }));
+
+// Global error handler — always respond with JSON, never an HTML stack page
+app.use((err, _req, res, _next) => {
+  console.error("Unhandled error:", err.message);
+  res.status(500).json({ message: "Something went wrong" });
+});
+
 const PORT = process.env.PORT || 5000;
 
 connectDB().then(async () => {

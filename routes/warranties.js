@@ -67,9 +67,13 @@ router.get("/", requirePerm("warranty:view"), async (req, res) => {
 
 // GET /api/warranties/:id
 router.get("/:id", requirePerm("warranty:view"), async (req, res) => {
-  const item = await Warranty.findById(req.params.id);
-  if (!item) return res.status(404).json({ message: "Not found" });
-  res.json(item);
+  try {
+    const item = await Warranty.findById(req.params.id);
+    if (!item) return res.status(404).json({ message: "Not found" });
+    res.json(item);
+  } catch {
+    res.status(404).json({ message: "Not found" });
+  }
 });
 
 // POST /api/warranties — create (image optional)
@@ -117,9 +121,13 @@ router.put(
 
 // DELETE /api/warranties/:id
 router.delete("/:id", requirePerm("warranty:delete"), async (req, res) => {
-  const item = await Warranty.findByIdAndDelete(req.params.id);
-  if (!item) return res.status(404).json({ message: "Not found" });
-  res.json({ message: "Deleted" });
+  try {
+    const item = await Warranty.findByIdAndDelete(req.params.id);
+    if (!item) return res.status(404).json({ message: "Not found" });
+    res.json({ message: "Deleted" });
+  } catch {
+    res.status(404).json({ message: "Not found" });
+  }
 });
 
 export default router;

@@ -52,4 +52,10 @@ const warrantySchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Indexes — speed up the sorted pagination and search lookups at scale.
+warrantySchema.index({ createdAt: -1 }); // default list sort
+warrantySchema.index({ customerName: 1 });
+warrantySchema.index({ customerPhone: 1 });
+// orderId already has a unique index from the field definition.
+
 export default mongoose.model("Warranty", warrantySchema);
