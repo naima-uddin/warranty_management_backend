@@ -27,7 +27,6 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
-app.options("*", cors()); // pre-flight request handle
 app.use(express.json());
 
 app.get("/", (_req, res) => res.json({ status: "Warranty API running" }));
