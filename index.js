@@ -20,7 +20,14 @@ if (!process.env.CLOUDINARY_CLOUD_NAME) {
 
 const app = express();
 
-app.use(cors({ origin: process.env.CLIENT_URL || "*" }));
+app.use(
+  cors({
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
+app.options("*", cors()); // pre-flight request handle
 app.use(express.json());
 
 app.get("/", (_req, res) => res.json({ status: "Warranty API running" }));
