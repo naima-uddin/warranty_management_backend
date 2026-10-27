@@ -40,3 +40,14 @@ On first run, an **admin** account is auto-created from `ADMIN_EMAIL` /
 Search (`?q=`) matches **Order ID**, **customer name**, or **phone**.
 Create/edit accept `multipart/form-data` with an optional `image` field
 (uploaded to Cloudinary; the warranty saves fine without it).
+
+
+
+all links: 
+1.https://klassy.com.bd/
+2.https://pixielabellabangladesh.com/
+3.https://beautyhub.com.bd/
+4.https://rusubd.com/
+5.https://othoba.com/
+6.https://kireibd.com/
+7.https://beautybooth.com.bd/
