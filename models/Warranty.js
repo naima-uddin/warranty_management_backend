@@ -30,7 +30,7 @@ const warrantySchema = new mongoose.Schema(
   {
     orderId: { type: String, required: true, unique: true, trim: true },
     purchaseDate: { type: Date, required: true },
-    customerName: { type: String, required: true, trim: true },
+    customerName: { type: String, trim: true },
     customerPhone: { type: String, trim: true },
     customerEmail: { type: String, trim: true, lowercase: true },
     productName: { type: String, required: true, trim: true },
